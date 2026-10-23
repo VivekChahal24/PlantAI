@@ -1,197 +1,138 @@
-# \U0001F33F PlantAI — Medicinal Plant Recognition System
+🌿 PlantAI — Medicinal Plant Recognition System
 
-A fully offline, Python desktop application that identifies medicinal
-plants/leaves from a photo using a CNN (TensorFlow/Keras), shows
-traditionally reported uses and safety precautions from a local
-knowledge base, and keeps a history + statistics of recognitions.
-No internet connection or API key is required at runtime.
+A Python desktop app that identifies medicinal plants from a photo using transfer learning (MobileNetV2 + TensorFlow/Keras), then shows the plant's family, category, description, traditionally reported uses and safety precautions from a local knowledge base. It also keeps a history and statistics of every recognition.
 
-> ⚠️ **Important disclaimer:** AI identification of a plant does **not**
-> confirm that it is safe to consume or suitable for treating any
-> disease. All "health benefit" information shown by this app comes
-> from a locally stored, user-editable reference file
-> (`data/plants_data.json`) and is for general educational purposes
-> only — it is **not** medical advice.
+Everything runs offline — no API key or internet connection is needed once the dependencies are installed.
 
----
+⚠️ Disclaimer: AI identification does not confirm that a plant is safe to consume or suitable for treating any condition. The health information in this app comes from a local, editable reference file (data/plants_data.json) and is for general educational purposes only. It is not medical advice. Consult a qualified professional before any medicinal use.
 
-## ✨ Features
+✨ Features
+Feature	Description
+📷 Image upload	Pick a plant/leaf photo (jpg, png, bmp, webp) with a clear preview
+🤖 AI recognition	MobileNetV2 transfer-learning classifier for 15 plants
+📊 Confidence score	Confidence % plus the top-3 alternative predictions
+🌱 Structured plant details	Family, category, parts used, description, traditional uses, each in its own labelled section
+⚠️ Safety info	Precautions highlighted in a separate section for every plant
+🔍 Search & filter	Search by name, scientific name, family or use; filter by category
+📚 Plant library	Browse all supported plants without needing a photo
+⭐ Favorites	Star plants for quick access
+📜 History	Every prediction is timestamped and saved locally
+📤 CSV export	Export your history to a spreadsheet
+💾 Reports	Save a .txt and a styled .html report per recognition
+📈 Statistics	Totals, most-recognized plants, category breakdown
+🤖 AI Model tab	Training accuracy curves and model info
+🌓 Dark / Light mode	Toggle from the top bar
+🌿 Supported plants
 
-| Feature | Description |
-|---|---|
-| 📷 Image Upload | Select a plant/leaf photo (jpg/png/bmp/webp) |
-| 🤖 AI Recognition | CNN model (Keras) classifies the plant |
-| 📊 Confidence Score | Shows prediction confidence % + top-3 alternatives |
-| 🌱 Plant Details | Common name, scientific name, family, category, description |
-| 💚 Health Benefits | Traditionally reported uses, from local dataset |
-| ⚠️ Safety Info | Precautions / warnings per plant |
-| 🔍 Plant Search | Search by name, scientific name, family, or use |
-| 🗂️ Category Filter | Filter the library by plant type (Herb, Tree, Shrub…) |
-| 📚 Plant Library | Browse all 15 supported plants, even without a trained model |
-| ⭐ Favorites | Star plants for quick access later |
-| 📜 Recognition History | Every prediction is timestamped and saved locally |
-| 📤 CSV Export | Export history to a spreadsheet-friendly CSV |
-| 💾 Save Report | Save a `.txt` + styled `.html` report per recognition |
-| 📈 Statistics | Total predictions, most-recognized plants, category breakdown |
-| 🤖 AI Model Tab | Shows training accuracy/loss curves once trained |
-| 🌓 Dark / Light Mode | Toggle theme from the top bar |
+Aloe Vera · Amla · Arjuna · Ashwagandha · Brahmi · Curry Leaf · Giloy · Ginger · Lemongrass · Mint · Moringa · Neem · Shatavari · Tulsi · Turmeric
 
----
+🧠 How the model works
 
-## 🗂️ Project Structure
+The classifier uses MobileNetV2 pretrained on ImageNet as a frozen feature extractor, with a small trainable head on top:
 
-```
+Input (128×128 RGB, scaled to [0, 1])
+  → Rescaling to [-1, 1]
+  → MobileNetV2 (frozen, ImageNet weights)
+  → GlobalAveragePooling
+  → Dense(128, ReLU) → Dropout(0.3)
+  → Dense(15, Softmax)
+
+Why transfer learning? A CNN trained from scratch on only ~20 photos per plant memorizes the training images and fails on new ones (validation accuracy stays near random). MobileNetV2 already understands edges, textures and shapes, so only the small head has to be learned, which works far better on small datasets.
+
+Training uses an 80/20 train/validation split, light augmentation (rotation, zoom, flips), and early stopping that keeps the best weights.
+
+🗂️ Project structure
 PlantAI/
-├── main.py                     # App entry point — run this
-├── config.py                   # Central paths & constants
+├── main.py                  # App entry point — run this
+├── config.py                # Paths, image size, app constants
 ├── requirements.txt
-├── README.md
 │
 ├── data/
-│   ├── plants_data.json        # Editable knowledge base (15 plants)
-│   ├── history.json            # Auto-created: recognition history
-│   └── favorites.json          # Auto-created: starred plants
+│   ├── plants_data.json     # Editable plant knowledge base
+│   ├── history.json         # Auto-created: recognition history
+│   └── favorites.json       # Auto-created: starred plants
 │
 ├── model/
-│   ├── model_builder.py        # CNN architecture (Keras Sequential)
-│   ├── train.py                # Train from dataset/ folder
-│   ├── predict.py              # Loads model, runs predictions
-│   ├── plant_model.h5          # Created after training (not included)
-│   ├── class_indices.json      # Created after training
-│   └── training_history.json   # Created after training
+│   ├── model_builder.py     # MobileNetV2 transfer-learning model
+│   ├── train.py             # Trains on the dataset/ folder
+│   ├── predict.py           # Loads the model and predicts
+│   ├── plant_model.h5       # Created by training
+│   ├── class_indices.json   # Created by training
+│   └── training_history.json
 │
 ├── utils/
-│   ├── database.py             # JSON-backed history/favorites/search/stats
-│   ├── image_utils.py          # OpenCV/Pillow preprocessing & thumbnails
-│   └── report_utils.py         # .txt / .html report generation
+│   ├── database.py          # JSON-backed history, favorites, search, stats
+│   ├── image_utils.py       # OpenCV/Pillow preprocessing and thumbnails
+│   └── report_utils.py      # .txt / .html report generation
 │
 ├── gui/
-│   ├── app.py                  # Main Tkinter window & all 6 tabs
-│   ├── theme.py                # Light/Dark ttk themes
-│   └── charts.py                # Dependency-free canvas bar/line charts
+│   ├── app.py               # Tkinter window and all 6 tabs
+│   ├── theme.py             # Light/Dark themes
+│   └── charts.py            # Dependency-free canvas charts
 │
-├── dataset/                    # YOU add training images here (empty folders provided)
-│   ├── Tulsi/
-│   ├── Neem/
-│   ├── ... (15 folders total, one per plant)
-│
-├── reports/                    # Saved recognition reports land here
-├── sample_images/              # Put test images here for quick manual testing
-└── assets/                     # Reserved for icons/screenshots
-```
+├── dataset/                 # Training images, one folder per plant
+├── reports/                 # Saved reports (git-ignored)
+└── sample_images/           # Test images
+⚙️ Installation (Windows / PowerShell)
 
----
+Python 3.11 is recommended (this is the version the project was tested with). TensorFlow does not support every newer Python release.
 
-## ⚙️ Installation
+powershell
+git clone https://github.com/VivekChahal24/PlantAI.git
+cd PlantAI
 
-1. Make sure you have **Python 3.9–3.11** installed (TensorFlow does not
-   yet support every newer Python version — check TensorFlow's release
-   notes if unsure).
-2. Tkinter usually ships with Python. On Linux, if it's missing:
-   ```bash
-   sudo apt-get install python3-tk
-   ```
-3. Install the dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+py -3.11 -m venv venv
+.\venv\Scripts\Activate.ps1
 
----
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 
-## 🚀 Running the App
+💡 Always use python -m pip install ... (not just pip) so packages go into the same Python that runs the app. Mixing Python versions inside one virtual environment causes errors like numpy._core._multiarray_umath or cannot import name '_imaging'. If that happens, delete venv and recreate it.
 
-```bash
+On Linux, if Tkinter is missing: sudo apt-get install python3-tk
+
+🚀 Run the app
+powershell
 python main.py
-```
 
-The app opens immediately, even **before** you train a model:
-- The **Plant Library**, **Favorites**, **History**, and **Statistics**
-  tabs work right away, since they only depend on the local JSON data.
-- The **Recognize** tab will tell you the model isn't trained yet if
-  you try to predict before training one (see below).
+The Library, Favorites, History and Statistics tabs work immediately. The Recognize tab needs a trained model (below).
 
----
+🏋️ Training the model
 
-## 🧠 Training the Recognition Model
+The repository does not include the plant photos, so you add your own:
 
-The project ships **without** a pre-trained `.h5` file or any leaf
-photos, since a real plant-image dataset is large and copyrighted
-photos can't be bundled. To train your own model:
-
-1. Collect photos for each plant (50–300+ images per class is a good
-   starting point; more is always better). Good sources: your own
-   photos, or a properly licensed/public-domain leaf dataset.
-2. Drop them into the matching folder under `dataset/`:
-   ```
+Put photos of each plant in its folder under dataset/:
    dataset/
-     Tulsi/        <- put Tulsi leaf photos here
-     Neem/         <- put Neem leaf photos here
-     ... etc.
-   ```
-   (Empty folders for all 15 starter plants are already created for you.
-   You can also add your own new plant folders — just also add a matching
-   entry to `data/plants_data.json` so its details show up in the app.)
-3. Run the trainer from the project root:
-   ```bash
+     Tulsi/     <- Tulsi photos
+     Neem/      <- Neem photos
+     ...
+Make sure every file is a real image (.jpg, .png). Pages saved from a browser as .htm or broken downloads will be ignored or cause errors.
+Train:
+powershell
    python model/train.py
-   ```
-   This will:
-   - Split your images 80/20 into train/validation automatically
-   - Apply light data augmentation (rotation, zoom, flips) since
-     medicinal-plant datasets are usually small
-   - Train a 4-block CNN and save the best-performing weights to
-     `model/plant_model.h5`
-   - Save `model/class_indices.json` (maps model output -> plant name)
-   - Save `model/training_history.json` (used by the **AI Model** tab
-     to draw accuracy/loss curves)
-4. Restart the app (or just re-open the Recognize tab) — the header
-   will now show "✅ Model loaded" and predictions will work.
 
-### Adding a brand-new plant (16th, 17th, ...)
+The first run needs internet once, to download the pretrained MobileNetV2 weights (~10–14 MB). 4. Restart the app. The header shows ✅ Model loaded when it is ready.
 
-1. Create `dataset/<NewPlantName>/` and add training photos.
-2. Add a matching entry to `data/plants_data.json` with the same key
-   (`scientific_name`, `family`, `category`, `description`,
-   `parts_used`, `traditional_uses`, `precautions`).
-3. Re-run `python model/train.py` to retrain including the new class.
+How many photos? With transfer learning, 20–30 per plant gives a working model, but 50–100+ varied photos per plant (different angles, lighting, backgrounds) improves accuracy noticeably.
 
----
+Adding a new plant
+Create dataset/<PlantName>/ and add photos.
+Add a matching entry to data/plants_data.json (scientific_name, family, category, description, parts_used, traditional_uses, precautions).
+Run python model/train.py again.
+📄 Reports
 
-## 📄 Reports
+After a prediction, click Save Report to write reports/<Plant>_<timestamp>.txt and .html (the HTML report embeds the uploaded image). Use History → Export CSV for a spreadsheet of all recognitions.
 
-From the **Recognize** tab, click **Save Report** after a prediction
-to write both:
-- `reports/<Plant>_<timestamp>.txt` — plain text
-- `reports/<Plant>_<timestamp>.html` — styled, includes the uploaded
-  image embedded inline, viewable in any browser
+⚠️ Known limitations
+Accuracy depends heavily on the size and quality of your training dataset. Plants that look alike (for example Tulsi and Mint) can be confused when there are few photos.
+Photos with a clear, close-up view of the leaf or plant part on a plain background give the best results.
+The model only knows the 15 plants it was trained on; any other plant will be mapped to the closest of those.
+🧩 Tech stack
 
-Use **History → Export CSV** to get a spreadsheet of every recognition
-ever made (great for quick analysis in Excel/Pandas).
+TensorFlow / Keras · OpenCV · NumPy · Pandas · Pillow · Tkinter
 
----
-
-## 🧩 Tech Stack
-
-- **TensorFlow / Keras** — CNN model definition, training, inference
-- **OpenCV** — image reading, color conversion, resizing/normalizing
-- **NumPy** — array operations for the model pipeline
-- **Pandas** — available for any tabular analysis you want to add on
-  top of `history.json` / the exported CSV
-- **Pillow** — GUI-friendly thumbnails and HTML report image embedding
-- **Tkinter / ttk** — the entire desktop GUI, including a from-scratch
-  dependency-free bar/line chart renderer (no matplotlib needed)
-
-Everything is 100% local — no external API calls, no internet
-required to run.
-
----
-
-## 🛣️ Ideas for Further Extension
-
-- Swap the from-scratch CNN for transfer learning (e.g. MobileNetV2)
-  for higher accuracy with fewer training images.
-- Add a confusion matrix view to the AI Model tab once you have a
-  held-out test set (scikit-learn's `confusion_matrix` pairs nicely
-  with `train.py`'s validation generator).
-- Add a "Plant of the Day" widget on the Library tab.
-- Package with PyInstaller for a one-click `.exe` / binary.
+🛣️ Ideas for further work
+Add a confusion matrix view to the AI Model tab
+Fine-tune the top MobileNetV2 layers once more data is available
+Add a "Plant of the Day" widget
+Package as a one-click .exe with PyInstaller
