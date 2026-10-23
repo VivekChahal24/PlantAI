@@ -28,7 +28,16 @@ class PlantPredictor:
             # Imported lazily: TensorFlow is slow to import, and we don't
             # want to pay that cost if there's no model to load anyway.
             from tensorflow.keras.models import load_model
-            self.model = load_model(MODEL_PATH)
+            try:
+                # safe_mode=False is required on Keras 3+: by default it
+                # refuses to deserialize the model's Lambda layer (used to
+                # rescale images for MobileNetV2) since Lambda layers can
+                # technically contain arbitrary code. This is our own
+                # model file we just trained, so it's safe to allow here.
+                self.model = load_model(MODEL_PATH, safe_mode=False)
+            except TypeError:
+                # Older Keras versions (<3.0) don't have safe_mode at all
+                self.model = load_model(MODEL_PATH)
             with open(CLASS_INDEX_PATH, "r", encoding="utf-8") as f:
                 raw = json.load(f)
             self.class_map = {int(k): v for k, v in raw.items()}

@@ -1,0 +1,29 @@
+============================================================
+PlantAI - Recognition Report
+============================================================
+Date/Time      : 2026-10-23 12:18:09
+Image File     : 6.jpg
+Predicted Plant: Shatavari
+Confidence     : 99.99%
+------------------------------------------------------------
+Scientific Name : Asparagus racemosus
+Family          : Asparagaceae
+Category        : Climber
+Parts Used      : Root
+
+Description:
+  A climbing, thorny plant with needle-like leaves and tuberous roots, traditionally significant in women's wellness formulations.
+
+Traditional / Commonly Discussed Uses:
+  - Traditionally used in women's wellness formulations
+  - Reported use for general vitality support
+  - Used in traditional digestive tonics
+
+Safety & Precautions:
+  - May interact with hormone-related medication
+  - Avoid in individuals allergic to asparagus
+  - Consult a practitioner before use during pregnancy or breastfeeding
+------------------------------------------------------------
+DISCLAIMER:
+Identification by AI does not confirm that a plant is safe to consume or suitable for treating any disease. Traditional/health information shown here is drawn from a locally stored reference dataset and is for general educational purposes only - it is not medical advice. Always consult a qualified professional before medicinal use of any plant.
+============================================================
